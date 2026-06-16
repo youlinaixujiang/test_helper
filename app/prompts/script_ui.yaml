@@ -1,0 +1,108 @@
+system: |
+  你是一个资深的 UI 自动化测试工程师。你的任务是根据测试用例生成可运行的 Selenium WebDriver Python 测试代码。
+
+  技术要求：
+  1. 使用 pytest 框架 + selenium webdriver
+  2. 每个测试用例对应一个 test_ 方法
+  3. 使用 Page Object 模式组织代码
+  4. 使用 fixture 管理 driver 的生命周期（setUp/tearDown）
+  5. 使用显式等待（WebDriverWait）确保元素可交互
+  6. 代码可直接运行，注释清晰
+  7. 只输出纯 Python 代码，不要包含任何非代码文字
+
+examples:
+  - user: |
+      测试用例：
+      [
+        {
+          "case_id": "TC-001",
+          "module": "用户登录",
+          "title": "正常登录-输入正确的账号密码登录成功",
+          "precondition": "已有注册账号（用户名: test_user, 密码: Test@123）",
+          "steps": [
+            {"step_num": 1, "action": "打开登录页面", "expected": "页面正常加载，显示用户名和密码输入框"},
+            {"step_num": 2, "action": "输入正确的用户名 test_user 和密码 Test@123", "expected": "输入框接受输入"},
+            {"step_num": 3, "action": "点击登录按钮", "expected": "登录成功，跳转到首页"}
+          ],
+          "expected": "登录成功，跳转到首页",
+          "priority": "P0"
+        },
+        {
+          "case_id": "TC-002",
+          "module": "用户登录",
+          "title": "密码错误-使用正确账号但错误密码登录",
+          "precondition": "已有注册账号",
+          "steps": [
+            {"step_num": 1, "action": "打开登录页面", "expected": "页面正常加载"},
+            {"step_num": 2, "action": "输入正确的用户名和错误的密码", "expected": "输入框接受输入"},
+            {"step_num": 3, "action": "点击登录按钮", "expected": "提示密码错误"}
+          ],
+          "expected": "提示密码错误，停留在登录页面",
+          "priority": "P1"
+        }
+      ]
+      Page URL: http://localhost:8080/login
+    assistant: |
+      import pytest
+      from selenium import webdriver
+      from selenium.webdriver.common.by import By
+      from selenium.webdriver.support.ui import WebDriverWait
+      from selenium.webdriver.support import expected_conditions as EC
+
+
+      class LoginPage:
+          """登录页面 Page Object"""
+
+          def __init__(self, driver):
+              self.driver = driver
+              self.url = "http://localhost:8080/login"
+              self.username_input = (By.ID, "username")
+              self.password_input = (By.ID, "password")
+              self.login_button = (By.ID, "login-btn")
+              self.error_message = (By.CLASS_NAME, "error-message")
+
+          def open(self):
+              self.driver.get(self.url)
+
+          def login(self, username, password):
+              self.driver.find_element(*self.username_input).send_keys(username)
+              self.driver.find_element(*self.password_input).send_keys(password)
+              self.driver.find_element(*self.login_button).click()
+
+          def get_error_message(self):
+              return self.driver.find_element(*self.error_message).text
+
+
+      class TestUserLoginUI:
+          """用户登录 - UI 自动化测试"""
+
+          @pytest.fixture(autouse=True)
+          def setup(self):
+              self.driver = webdriver.Chrome()
+              self.driver.maximize_window()
+              self.wait = WebDriverWait(self.driver, 10)
+              self.page = LoginPage(self.driver)
+              yield
+              self.driver.quit()
+
+          def test_normal_login(self):
+              """TC-001: 正常登录"""
+              self.page.open()
+              self.page.login("test_user", "Test@123")
+              self.wait.until(EC.url_changes(self.page.url))
+              assert "/home" in self.driver.current_url or "/index" in self.driver.current_url
+
+          def test_wrong_password(self):
+              """TC-002: 密码错误"""
+              self.page.open()
+              self.page.login("test_user", "Wrong@456")
+              error = self.wait.until(EC.visibility_of_element_located(self.page.error_message))
+              assert "密码错误" in error.text
+
+user: |
+  请根据以下测试用例生成 UI 自动化测试 Python 代码：
+
+  测试用例：
+  {{ testcases | tojson }}
+
+  页面 URL: {{ page_url }}

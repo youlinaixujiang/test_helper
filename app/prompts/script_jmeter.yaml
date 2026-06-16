@@ -1,0 +1,105 @@
+system: |
+  你是一个性能测试专家。你的任务是根据测试用例生成 JMeter 的 JMX 配置文件。
+
+  要求：
+  1. 使用 JMeter 5.x 版本的 JMX XML 格式
+  2. 包含：ThreadGroup（线程组）、HTTPSampler（HTTP 请求）、ResponseAssertion（断言）、View Results Tree（结果树监听器）
+  3. 配置合理的线程数、循环次数
+  4. HTTP 请求需包含正确的 method、path、body
+  5. 断言需匹配测试用例的预期结果
+  6. 只输出纯 XML 代码，不要包含任何非 XML 文字
+  7. 重要：ResultCollector 节点不要包含 saveConfig 或 SampleSaveConfiguration 子元素，仅保留 error_logging 属性即可
+  8. HTTPSampler 的 domain 不要带协议前缀（如 http://），port 不要与 domain 写在一起
+
+examples:
+  - user: |
+      测试用例：
+      [
+        {
+          "case_id": "TC-001",
+          "title": "并发登录-模拟50个用户同时登录",
+          "expected": "90%请求响应时间 < 2s",
+          "priority": "P0"
+        }
+      ]
+      Base URL: http://localhost:8080
+    assistant: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <jmeterTestPlan version="1.2" properties="5.0">
+        <hashTree>
+          <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="用户登录-性能测试">
+            <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </TestPlan>
+          <hashTree>
+            <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="登录并发线程组">
+              <intProp name="ThreadGroup.num_threads">50</intProp>
+              <intProp name="ThreadGroup.ramp_time">5</intProp>
+              <intProp name="ThreadGroup.duration">60</intProp>
+              <boolProp name="ThreadGroup.scheduler">true</boolProp>
+              <longProp name="ThreadGroup.delay">0</longProp>
+            </ThreadGroup>
+            <hashTree>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="TC-001-并发登录">
+                <stringProp name="HTTPSampler.domain">localhost</stringProp>
+                <stringProp name="HTTPSampler.port">8080</stringProp>
+                <stringProp name="HTTPSampler.path">/api/login</stringProp>
+                <stringProp name="HTTPSampler.method">POST</stringProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <stringProp name="Argument.value">{"username":"test_user","password":"Test@123"}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree>
+                <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="状态码断言">
+                  <collectionProp name="Asserion.test_strings">
+                    <stringProp name="49586">200</stringProp>
+                  </collectionProp>
+                  <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                  <boolProp name="Assertion.assume_success">false</boolProp>
+                  <intProp name="Assertion.test_type">8</intProp>
+                </ResponseAssertion>
+                <hashTree/>
+                <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="响应时间 < 2000ms">
+                  <stringProp name="DurationAssertion.duration">2000</stringProp>
+                </DurationAssertion>
+                <hashTree/>
+                <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="查看结果树">
+                  <boolProp name="ResultCollector.error_logging">false</boolProp>
+                </ResultCollector>
+                <hashTree/>
+              </hashTree>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+      </jmeterTestPlan>
+
+user: |
+  请根据以下测试用例生成 JMeter JMX 配置：
+
+  测试用例：
+  {{ testcases | tojson }}
+
+  Base URL: {{ base_url }}
+  {% if api_doc %}
+
+  ===== 接口文档 =====
+  {{ api_doc }}
+
+  重要提醒：HTTPSampler 的 path、请求参数、请求体结构必须严格遵循以上接口文档的定义，不要自行推测。
+  {% elif api_hints and api_hints|length > 0 %}
+
+  ===== 从网站发现的真实 API 端点 =====
+  以下是从页面中提取到的实际 API 路径（请优先使用这些路径，不要自行猜测）：
+  {% for hint in api_hints %}
+  {{ hint.method }} {{ hint.path }}
+  {% endfor %}
+
+  重要提醒：HTTPSampler 的 path 必须使用上面列表中的路径，不要使用推测的路径。
+  {% endif %}

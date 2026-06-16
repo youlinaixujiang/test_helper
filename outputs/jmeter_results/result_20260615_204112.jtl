@@ -1,0 +1,40 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1781527275637,168,TC-001-成功登录,500,,登录功能测试线程组 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[5]]]00
+
+****** comparison: [[[2]]]00
+
+/",456,247,1,1,http://121.40.104.18/api/auth/login,160,0,96
+1781527275858,60,TC-002-错误密码,401,,登录功能测试线程组 1-1,text,false,Test failed: text expected to contain /401/,456,243,1,1,http://121.40.104.18/api/login,60,0,0
+1781527275919,50,TC-003-错误账号,401,,登录功能测试线程组 1-1,text,false,Test failed: text expected to contain /401/,456,252,1,1,http://121.40.104.18/api/login,50,0,0
+1781527275970,51,TC-004-空字段,401,,登录功能测试线程组 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : 40[[[1]]]
+
+****** comparison: 40[[[0]]]
+
+/",456,229,1,1,http://121.40.104.18/api/login,51,0,0
+1781527276022,66,TC-005-记住我登录,401,,登录功能测试线程组 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[401]]]
+
+****** comparison: [[[200]]]
+
+/",456,259,1,1,http://121.40.104.18/api/login,66,0,0
+1781527276089,49,TC-007-SQL注入,401,,登录功能测试线程组 1-1,text,false,Test failed: text expected to contain /用户名或密码错误/,456,245,1,1,http://121.40.104.18/api/login,49,0,0
+1781527276138,55,TC-008-XSS攻击,401,,登录功能测试线程组 1-1,text,false,,456,280,1,1,http://121.40.104.18/api/login,55,0,0
+1781527276194,59,TC-009-重复登录设备B,401,,登录功能测试线程组 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[401]]]
+
+****** comparison: [[[200]]]
+
+/",456,246,1,1,http://121.40.104.18/api/login,59,0,0
+1781527276253,62,TC-010-超时后重新登录,401,,登录功能测试线程组 1-1,text,false,"Test failed: code expected to equal /
+
+****** received  : [[[401]]]
+
+****** comparison: [[[200]]]
+
+/",456,242,1,1,http://121.40.104.18/api/login,62,0,0

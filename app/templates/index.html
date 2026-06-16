@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 测试 Agent 平台 — Neural Terminal</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2306080d%22/%3E%3Ctext x=%2216%22 y=%2223%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22%2300d4ff%22%3Eλ%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <!-- Background Effects -->
+  <div class="bg-grid"></div>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ========== HEADER ========== -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="header-logo">&lambda;</div>
+        <span class="header-title">AI 测试 Agent 平台</span>
+      </div>
+      <div class="header-status">
+        <span class="status-dot"></span>Agnes-AI Live
+        <span class="status-sep"></span>
+        v1.0
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main-content">
+
+    <!-- ---- Flow Step Indicator ---- -->
+    <div class="flow-steps">
+      <div class="flow-step active" data-step="requirement">
+        <span class="flow-num">01</span>需求解析
+      </div>
+      <div class="flow-step" data-step="testcase">
+        <span class="flow-num">02</span>用例生成
+      </div>
+      <div class="flow-step" data-step="script">
+        <span class="flow-num">03</span>脚本生成
+      </div>
+      <div class="flow-step" data-step="defect">
+        <span class="flow-num">04</span>缺陷分析
+      </div>
+    </div>
+
+    <!-- ---- Tab Navigation ---- -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="requirement" onclick="switchTab('requirement')">
+        <span class="tab-icon">&#9633;</span> 需求解析
+      </button>
+      <button class="tab-btn" data-tab="testcase" onclick="switchTab('testcase')">
+        <span class="tab-icon">&#9998;</span> 用例生成
+      </button>
+      <button class="tab-btn" data-tab="script" onclick="switchTab('script')">
+        <span class="tab-icon">&#9881;</span> 脚本生成
+      </button>
+      <button class="tab-btn" data-tab="defect" onclick="switchTab('defect')">
+        <span class="tab-icon">&#9878;</span> 缺陷分析
+      </button>
+    </nav>
+
+    <!-- ================================================================ -->
+    <!--  PANEL: 需求解析                                                    -->
+    <!-- ================================================================ -->
+    <div id="panel-requirement" class="panel active">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-dot"></span>
+          <div>
+            <div class="card-title">需求解析 Agent</div>
+            <div class="card-desc">将自然语言测试需求自动拆解为结构化测试点</div>
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">被测网站 URL（可选）</label>
+            <div class="url-check-row">
+              <input type="text" id="req-url" class="url-input" placeholder="例如：http://121.40.104.18/" oninput="onUrlInput()">
+              <button class="btn btn-sm btn-secondary" id="url-check-btn" onclick="checkWebsiteUrl()" disabled>检测网址</button>
+            </div>
+            <div class="url-status" id="url-status"></div>
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">上传需求文档</label>
+            <div class="upload-zone" id="req-upload-zone">
+              <input type="file" id="req-file-input" accept=".txt,.md,.docx,.doc,.pdf" onchange="handleFileSelect(event)" style="display:none;">
+              <div class="upload-content" id="req-upload-content">
+                <div class="upload-icon">&#128196;</div>
+                <div class="upload-text">拖拽文档到此处，或<span class="upload-link">点击选择文件</span></div>
+                <div class="upload-hint">支持 .txt / .md / .docx / .pdf，最大 10 MB</div>
+              </div>
+              <div class="upload-progress" id="req-upload-progress">
+                <span class="spinner-small"></span>
+                <span>正在解析文档...</span>
+              </div>
+              <div class="upload-done" id="req-upload-done">
+                <span class="upload-filename"></span>
+                <button class="btn-clear" onclick="clearDocument()">&times;</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">测试需求描述（从文档提取或手动输入）</label>
+            <textarea id="req-input" placeholder="上传文档后自动填充内容，也可在此手动编辑..."></textarea>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="req-btn" onclick="parseRequirement(false)">&#9654; 开始解析</button>
+        </div>
+
+        <!-- Skeleton -->
+        <div class="skeleton" id="req-skeleton" style="margin-top:20px;">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-line w80"></div>
+          <div class="skeleton-line w100"></div>
+          <div class="skeleton-line w60"></div>
+          <div class="skeleton-block"></div>
+        </div>
+
+        <!-- Output -->
+        <div class="output-area" id="req-output" style="margin-top:20px;">
+          <div class="output-header">
+            <span class="output-title">解析结果</span>
+            <span class="output-badge">需求分析</span>
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">JSON</span>
+            </div>
+            <pre id="req-result"></pre>
+          </div>
+
+          <div class="feedback-area" id="req-feedback-area">
+            <label class="form-label">修改意见（支持多轮迭代）</label>
+            <textarea id="req-feedback" placeholder="例如：增加安全性测试点、提升某个场景的优先级..."></textarea>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="parseRequirement(true)">提交修改意见</button>
+            </div>
+          </div>
+
+          <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-save" onclick="saveRequirement()">保存到本地</button>
+            <button class="btn btn-secondary btn-xs" onclick="fillFromRequirement()">传递给用例生成 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!--  PANEL: 用例生成                                                    -->
+    <!-- ================================================================ -->
+    <div id="panel-testcase" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-dot"></span>
+          <div>
+            <div class="card-title">用例生成 Agent</div>
+            <div class="card-desc">基于需求解析结果，生成标准化的测试用例</div>
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">需求解析结果（JSON）</label>
+            <textarea id="tc-input" placeholder='从需求解析 Agent 复制结果，或直接编辑 JSON'></textarea>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="tc-btn" onclick="generateTestCases(false)">&#9654; 生成用例</button>
+        </div>
+
+        <div class="skeleton" id="tc-skeleton" style="margin-top:20px;">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-line w80"></div>
+          <div class="skeleton-line w100"></div>
+          <div class="skeleton-block"></div>
+        </div>
+
+        <div class="output-area" id="tc-output" style="margin-top:20px;">
+          <div class="output-header">
+            <span class="output-title">生成的测试用例</span>
+            <span class="output-badge">用例集</span>
+          </div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">JSON</span></div>
+            <pre id="tc-result"></pre>
+          </div>
+
+          <div class="feedback-area" id="tc-feedback-area">
+            <label class="form-label">修改意见</label>
+            <textarea id="tc-feedback" placeholder="例如：增加步骤细节、修改预期结果、调整优先级..."></textarea>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="generateTestCases(true)">提交修改意见</button>
+            </div>
+          </div>
+
+          <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-save" onclick="saveTestCases()">保存到本地</button>
+            <button class="btn btn-save" onclick="exportTestCasesExcel()">导出 Excel</button>
+            <button class="btn btn-secondary btn-xs" onclick="fillFromTestCases()">传递给脚本生成 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!--  PANEL: 脚本生成                                                    -->
+    <!-- ================================================================ -->
+    <div id="panel-script" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-dot"></span>
+          <div>
+            <div class="card-title">脚本生成 Agent</div>
+            <div class="card-desc">基于测试用例，生成可执行的自动化测试脚本</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">测试用例（JSON）<span id="tc-required-badge" class="badge-required" style="display:none;">*必填</span></label>
+            <textarea id="script-testcases" placeholder='[{"case_id": "TC-001", "title": "...", "steps": [...]}]'></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">脚本类型</label>
+            <select id="script-type" onchange="onScriptTypeChange()">
+              <option value="api">接口测试 (pytest + requests)</option>
+              <option value="ui">UI 自动化 (Selenium WebDriver)</option>
+              <option value="jmeter">性能测试 (JMeter JMX)</option>
+            </select>
+            <label class="form-label" style="margin-top:16px;">Base URL</label>
+            <input type="text" id="script-base-url" value="http://localhost:8080" placeholder="被测系统 URL">
+          </div>
+        </div>
+
+        <!-- 接口文档字段 — 仅 API 类型可见 -->
+        <div class="form-row" id="api-doc-row" style="display:none;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">接口文档<span class="badge-required">*必填</span></label>
+            <textarea id="script-api-doc" placeholder="粘贴接口文档内容（Swagger/OpenAPI、接口清单等）..." style="min-height:150px;"></textarea>
+          </div>
+        </div>
+
+        <!-- 页面 URL 字段 — 仅 UI 类型可见 -->
+        <div class="form-row" id="ui-url-row" style="display:none;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">页面 URL<span class="badge-required">*必填</span></label>
+            <div class="input-row">
+              <input type="text" id="script-page-url" placeholder="要测试的页面 URL，如 http://example.com/login" style="flex:1;">
+              <button class="btn btn-sm" onclick="checkScriptPageUrl()" style="white-space:nowrap;">检测页面</button>
+            </div>
+            <div class="url-status" id="script-page-status"></div>
+          </div>
+        </div>
+
+        <!-- API 信息来源 — 仅 JMeter 可见 -->
+        <div class="form-row" id="jmeter-api-source-row" style="display:none;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">接口信息来源<span class="badge-required">*必填</span></label>
+            <div class="radio-group" style="margin-bottom:10px; display:flex; gap:24px;">
+              <label class="radio-label"><input type="radio" name="jmeter-api-source" value="url" checked onchange="onJmeterApiSourceChange()"> 从网址自动发现（<span id="jmeter-api-hint-count">0</span> 个端点）</label>
+              <label class="radio-label"><input type="radio" name="jmeter-api-source" value="doc" onchange="onJmeterApiSourceChange()"> 手动粘贴接口文档</label>
+            </div>
+            <textarea id="script-jmeter-api-doc" placeholder="粘贴接口文档内容（Swagger/OpenAPI、接口清单等）..." style="min-height:120px; display:none;"></textarea>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="script-btn" onclick="generateScript()">&#9654; 生成脚本</button>
+        </div>
+
+        <div class="skeleton" id="script-skeleton" style="margin-top:20px;">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-line w60"></div>
+          <div class="skeleton-line w40"></div>
+          <div class="skeleton-block"></div>
+        </div>
+
+        <div class="output-area" id="script-output" style="margin-top:20px;">
+          <div class="output-header">
+            <span class="output-title">生成的脚本</span>
+            <span class="output-badge" id="script-lang-badge">Python</span>
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang" id="script-lang-label">pytest</span>
+            </div>
+            <pre id="script-result"></pre>
+          </div>
+
+          <div class="jmx-runner" id="jmx-runner">
+            <div class="jmx-runner-title">JMX 文件已生成</div>
+            <div class="jmx-runner-desc">是否需要使用本地 JMeter 自动运行此脚本？运行完成后可对结果进行缺陷分析。</div>
+            <div class="jmx-runner-btns" id="jmx-runner-btns">
+              <button class="btn btn-primary" onclick="runJmeter()">&#9654; 自动运行</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('jmx-runner').classList.remove('show')">暂不运行</button>
+            </div>
+            <div class="jmx-runner-status" id="jmx-runner-status">
+              <span class="spinner-small"></span>
+              <span>正在运行 JMeter 性能测试...</span>
+            </div>
+            <div class="jmx-runner-result" id="jmx-runner-result"></div>
+          </div>
+
+          <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-save" onclick="saveScript()">保存脚本到本地</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!--  PANEL: 缺陷分析                                                    -->
+    <!-- ================================================================ -->
+    <div id="panel-defect" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-dot"></span>
+          <div>
+            <div class="card-title">缺陷分析 Agent</div>
+            <div class="card-desc">对测试执行结果进行缺陷分类与根因分析</div>
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="form-group">
+            <label class="form-label">测试执行结果（失败日志 / pytest 输出）</label>
+            <textarea id="defect-input" placeholder="粘贴测试失败输出...&#10;例如：FAILED test_login.py::TestLogin::test_wrong_password - AssertionError: 期望 401，实际 500"></textarea>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="defect-btn" onclick="analyzeDefects(false)">&#9654; 分析缺陷</button>
+        </div>
+
+        <div class="skeleton" id="defect-skeleton" style="margin-top:20px;">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-line w80"></div>
+          <div class="skeleton-line w60"></div>
+          <div class="skeleton-block"></div>
+        </div>
+
+        <div class="output-area" id="defect-output" style="margin-top:20px;">
+          <div class="output-header">
+            <span class="output-title">缺陷分析报告</span>
+            <span class="output-badge">根因分析</span>
+          </div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">JSON</span></div>
+            <pre id="defect-result"></pre>
+          </div>
+
+          <div class="feedback-area" id="defect-feedback-area">
+            <label class="form-label">修改意见</label>
+            <textarea id="defect-feedback" placeholder="例如：对某个缺陷的根因分析不够深入..."></textarea>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="analyzeDefects(true)">提交修改意见</button>
+            </div>
+          </div>
+
+          <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-save" onclick="saveDefectReport()">保存报告到本地</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
